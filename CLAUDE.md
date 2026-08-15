@@ -57,6 +57,20 @@ não funciona em ARM, ver memória `reference_ambiente_git_gh`). Falta:
 - Fotos de amostra (`*.jpg` na raiz da pasta) e os JSONs exportados são dados
   pessoais reais — `.gitignore` já exclui isso, mas checar antes de commitar.
 
+## OCR testado e descartado (2026-08-15)
+Testei usar OCR (Tesseract.js, que roda tanto no navegador quanto no Node) como
+redundância pra recuperar a CDC impressa por extenso perto do QR quando a
+leitura falha. Testado de verdade numa foto real que falhou (`20260815_152759.jpg`
+— QR com reflexo de luz + dobra, `ChecksumError` confirmado via zxing-cpp com
+`return_errors=True`), com a foto corrigida (rotação, recorte, upscale 2-6x,
+vários PSM/OEM). Resultado: dígitos majoritariamente errados mesmo em texto
+nítido e bem enquadrado — a fonte dot-matrix das impressoras térmicas não é o
+que os modelos genéricos de OCR reconhecem bem. Não vale a pena reativar essa
+ideia sem um modelo treinado especificamente pra esse tipo de fonte (fora do
+escopo). Decisão: em vez de OCR, o capturador mostra dicas de recaptura
+(reflexo, dobra, distância) quando passa tempo sem ler nenhum QR — resolve o
+caso real, já que o mesmo QR lê perfeitamente numa foto sem esses problemas.
+
 ## Próximos passos possíveis
 - Fase 2 de itens: escolher entre colar manualmente (após captcha) ou OCR do
   cupom (Tesseract.js) — ver discussão na sessão de 2026-08-15.
