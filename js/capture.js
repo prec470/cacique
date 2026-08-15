@@ -1,6 +1,6 @@
 import { prepareZXingModule, readBarcodes } from "../vendor/zxing-wasm/reader.js";
 import { parseTextoQr, QrInvalidoError } from "./qr-parse.js";
-import { carregarPendentes, salvarPendentes } from "./store.js";
+import { carregarPendentes, salvarPendentes, carregarComercios, salvarComercios, TIPOS_COMERCIO } from "./store.js";
 
 const vendorBase = new URL("../vendor/zxing-wasm/", import.meta.url);
 prepareZXingModule({
@@ -26,9 +26,12 @@ const els = {
 	btnLimpar: document.getElementById("btnLimpar"),
 	toast: document.getElementById("toast"),
 	falhas: document.getElementById("falhas"),
+	novosComercios: document.getElementById("novosComercios"),
+	cardNovosComercios: document.getElementById("cardNovosComercios"),
 };
 
 let pendentes = carregarPendentes();
+let comercios = carregarComercios();
 let stream = null;
 let scanLoopHandle = null;
 let cooldownAte = 0;
@@ -89,6 +92,10 @@ function jaTem(cdc) {
 	return pendentes.some((r) => r.cdc === cdc);
 }
 
+function nomeComercio(ruc) {
+	return comercios[ruc]?.nome || ruc;
+}
+
 function adicionarRegistro(registro) {
 	if (jaTem(registro.cdc)) {
 		mostrarToast("Essa nota já está na lista.");
@@ -97,13 +104,65 @@ function adicionarRegistro(registro) {
 	pendentes = [registro, ...pendentes];
 	persistir();
 	renderLista();
+	renderNovosComercios();
 	return true;
+}
+
+// --- Cadastro de comércios: oferece cadastrar RUCs novos assim que aparecem ---
+function opcoesTipo(selecionado) {
+	return TIPOS_COMERCIO.map(
+		(t) => `<option value="${t}" ${t === selecionado ? "selected" : ""}>${t}</option>`,
+	).join("");
+}
+
+function renderNovosComercios() {
+	const rucsNovos = [...new Set(pendentes.map((r) => r.emissor.ruc))].filter((ruc) => !comercios[ruc]);
+	els.novosComercios.innerHTML = "";
+	if (!rucsNovos.length) {
+		els.cardNovosComercios.style.display = "none";
+		return;
+	}
+	els.cardNovosComercios.style.display = "";
+	for (const ruc of rucsNovos) {
+		const row = document.createElement("div");
+		row.className = "row field-inline";
+		row.style.marginBottom = "8px";
+		row.dataset.ruc = ruc;
+		row.innerHTML = `
+			<code class="small muted" style="min-width:110px">${ruc}</code>
+			<input type="text" placeholder="Nome do estabelecimento" data-campo="nome" style="flex:1; min-width:160px" />
+			<select data-campo="tipo" style="min-width:170px">
+				<option value="">Tipo...</option>
+				${opcoesTipo()}
+			</select>
+			<button class="btn primary" data-campo="salvar">Salvar</button>
+			<button class="btn" data-campo="agora-nao">Agora não</button>
+		`;
+		const nomeInput = row.querySelector('[data-campo="nome"]');
+		const tipoSelect = row.querySelector('[data-campo="tipo"]');
+		row.querySelector('[data-campo="salvar"]').addEventListener("click", () => {
+			if (!nomeInput.value.trim()) {
+				mostrarToast("Digite um nome pra esse comércio.");
+				return;
+			}
+			comercios[ruc] = { nome: nomeInput.value.trim(), tipo: tipoSelect.value || null };
+			salvarComercios(comercios);
+			renderLista();
+			renderNovosComercios();
+		});
+		row.querySelector('[data-campo="agora-nao"]').addEventListener("click", () => {
+			row.remove();
+			if (!els.novosComercios.children.length) els.cardNovosComercios.style.display = "none";
+		});
+		els.novosComercios.appendChild(row);
+	}
 }
 
 function removerRegistro(cdc) {
 	pendentes = pendentes.filter((r) => r.cdc !== cdc);
 	persistir();
 	renderLista();
+	renderNovosComercios();
 }
 
 function renderLista() {
@@ -123,7 +182,7 @@ function renderLista() {
 		const credito = r.tipoDocumento.codigo === "05";
 		tr.innerHTML = `
 			<td>${data}</td>
-			<td>${r.emissor.ruc}</td>
+			<td>${nomeComercio(r.emissor.ruc)}</td>
 			<td><span class="chip ${credito ? "credito" : ""}"><span class="dot"></span>${r.tipoDocumento.descricao}</span></td>
 			<td>${fmtGs(r.totalOperacao)}</td>
 			<td>${r.quantidadeItens ?? "—"}</td>
@@ -302,6 +361,8 @@ els.btnLimpar.addEventListener("click", () => {
 	pendentes = [];
 	persistir();
 	renderLista();
+	renderNovosComercios();
 });
 
 renderLista();
+renderNovosComercios();

@@ -1,8 +1,25 @@
 // Cacique — persistência local (localStorage). Compartilhado entre capturador e dashboard.
 
 const KEY_LEDGER = "cacique:ledger:v1";
-const KEY_APELIDOS = "cacique:apelidos:v1";
+const KEY_COMERCIOS = "cacique:apelidos:v1";
 const KEY_PENDENTES = "cacique:pendentes:v1";
+
+// Categorias fixas pra facilitar agrupar/filtrar comércios depois (texto livre fragmenta demais).
+export const TIPOS_COMERCIO = [
+	"Supermercado / Almacén",
+	"Farmácia",
+	"Restaurante / Bar",
+	"Combustível / Posto",
+	"Vestuário / Calçados",
+	"Eletrônicos / Informática",
+	"Casa / Ferragens",
+	"Saúde",
+	"Educação",
+	"Transporte",
+	"Lazer",
+	"Serviços",
+	"Outro",
+];
 
 function ler(chave, padrao) {
 	try {
@@ -41,12 +58,27 @@ export function mesclarNoLedger(existentes, novos) {
 	return { ledger: [...existentes, ...adicionadas], adicionadas: adicionadas.length, duplicadas };
 }
 
-export function carregarApelidos() {
-	return ler(KEY_APELIDOS, {});
+// Mapa ruc -> { nome, tipo }. Chave de storage mantida como "apelidos" por
+// compatibilidade com dados já salvos; o conteúdo cresceu pra incluir o tipo.
+export function carregarComercios() {
+	return ler(KEY_COMERCIOS, {});
 }
 
-export function salvarApelidos(mapa) {
-	gravar(KEY_APELIDOS, mapa);
+export function salvarComercios(mapa) {
+	gravar(KEY_COMERCIOS, mapa);
+}
+
+// Funde um mapa de comércios importado sobre o existente (importado tem prioridade
+// campo a campo, mas não apaga comércios que só existem no lado local).
+export function mesclarComercios(existentes, importados) {
+	const resultado = { ...existentes };
+	let atualizados = 0;
+	for (const [ruc, dados] of Object.entries(importados || {})) {
+		if (!ruc) continue;
+		resultado[ruc] = { ...resultado[ruc], ...dados };
+		atualizados++;
+	}
+	return { comercios: resultado, atualizados };
 }
 
 export function carregarPendentes() {

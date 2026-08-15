@@ -3,10 +3,12 @@ import {
 	carregarLedger,
 	salvarLedger,
 	mesclarNoLedger,
-	carregarApelidos,
-	salvarApelidos,
+	carregarComercios,
+	salvarComercios,
+	mesclarComercios,
 	carregarPendentes,
 	salvarPendentes,
+	TIPOS_COMERCIO,
 } from "./store.js";
 
 const els = {
@@ -31,11 +33,14 @@ const els = {
 	tabelaWrap: document.getElementById("tabelaWrap"),
 	btnBackup: document.getElementById("btnBackup"),
 	btnApagarTudo: document.getElementById("btnApagarTudo"),
+	btnExportarComercios: document.getElementById("btnExportarComercios"),
+	btnImportarComercios: document.getElementById("btnImportarComercios"),
+	fileImportComercios: document.getElementById("fileImportComercios"),
 	toast: document.getElementById("toast"),
 };
 
 let ledger = carregarLedger();
-let apelidos = carregarApelidos();
+let comercios = carregarComercios();
 
 function mostrarToast(msg, ms = 2600) {
 	els.toast.textContent = msg;
@@ -51,7 +56,7 @@ function fmtGs(valor) {
 }
 
 function nomeComercio(ruc) {
-	return apelidos[ruc]?.nome || ruc;
+	return comercios[ruc]?.nome || ruc;
 }
 
 function dataDe(registro) {
@@ -156,6 +161,43 @@ els.btnApagarTudo.addEventListener("click", () => {
 	renderTudo();
 });
 
+// --- Exportar / importar cadastro de comércios ---
+els.btnExportarComercios.addEventListener("click", () => {
+	const blob = new Blob([JSON.stringify(comercios, null, 2)], { type: "application/json" });
+	const url = URL.createObjectURL(blob);
+	const a = document.createElement("a");
+	const carimbo = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+	a.href = url;
+	a.download = `cacique-comercios-${carimbo}.json`;
+	document.body.appendChild(a);
+	a.click();
+	a.remove();
+	URL.revokeObjectURL(url);
+});
+
+els.btnImportarComercios.addEventListener("click", () => els.fileImportComercios.click());
+
+els.fileImportComercios.addEventListener("change", async (e) => {
+	const arquivos = e.target.files;
+	if (!arquivos.length) return;
+	let totalAtualizados = 0;
+	let erros = 0;
+	for (const arquivo of arquivos) {
+		try {
+			const dados = JSON.parse(await arquivo.text());
+			const { comercios: novo, atualizados } = mesclarComercios(comercios, dados);
+			comercios = novo;
+			totalAtualizados += atualizados;
+		} catch {
+			erros++;
+		}
+	}
+	salvarComercios(comercios);
+	mostrarToast(`${totalAtualizados} comércio(s) atualizado(s)${erros ? `, ${erros} arquivo(s) inválido(s)` : ""}.`);
+	renderTudo();
+	e.target.value = "";
+});
+
 // --- Filtro de período ---
 function periodoParaIntervalo(valor) {
 	const agora = new Date();
@@ -255,7 +297,13 @@ function montarTipos(filtrado) {
 	return [...porTipo.entries()].sort((a, b) => b[1] - a[1]);
 }
 
-// --- Comércios (apelidos + categoria) ---
+// --- Comércios (nome + tipo, cadastro do usuário) ---
+function opcoesTipo(selecionado) {
+	return TIPOS_COMERCIO.map(
+		(t) => `<option value="${t}" ${t === selecionado ? "selected" : ""}>${t}</option>`,
+	).join("");
+}
+
 function renderComercios() {
 	const rucs = [...new Set(ledger.map((r) => r.emissor.ruc))].sort();
 	els.comercios.innerHTML = "";
@@ -265,20 +313,29 @@ function renderComercios() {
 	}
 	for (const ruc of rucs) {
 		const n = ledger.filter((r) => r.emissor.ruc === ruc).length;
+		const dados = comercios[ruc] || {};
 		const row = document.createElement("div");
 		row.className = "row field-inline";
 		row.style.marginBottom = "8px";
+		row.dataset.ruc = ruc;
 		row.innerHTML = `
 			<code class="small muted" style="min-width:110px">${ruc}</code>
-			<input type="text" placeholder="Apelido (ex.: Supermercado X)" value="${apelidos[ruc]?.nome || ""}" data-ruc="${ruc}" style="flex:1; min-width:160px" />
+			<input type="text" placeholder="Nome do estabelecimento" value="${dados.nome || ""}" data-campo="nome" style="flex:1; min-width:160px" />
+			<select data-campo="tipo" style="min-width:170px">
+				<option value="">Tipo...</option>
+				${opcoesTipo(dados.tipo)}
+			</select>
 			<span class="small muted">${n} nota(s)</span>
 		`;
-		const input = row.querySelector("input");
-		input.addEventListener("change", () => {
-			apelidos[ruc] = { ...(apelidos[ruc] || {}), nome: input.value.trim() };
-			salvarApelidos(apelidos);
+		const nomeInput = row.querySelector('[data-campo="nome"]');
+		const tipoSelect = row.querySelector('[data-campo="tipo"]');
+		const salvar = () => {
+			comercios[ruc] = { ...comercios[ruc], nome: nomeInput.value.trim(), tipo: tipoSelect.value || null };
+			salvarComercios(comercios);
 			renderTudo();
-		});
+		};
+		nomeInput.addEventListener("change", salvar);
+		tipoSelect.addEventListener("change", salvar);
 		els.comercios.appendChild(row);
 	}
 }

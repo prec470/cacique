@@ -79,10 +79,17 @@
 	</div>
 
 	<div class="card">
-		<h2>Comércios (apelidos)</h2>
-		<p class="small muted" style="margin-top:-6px">
-			A nota só traz o RUC do comércio (o site da SET exige captcha pros dados completos). Dê um apelido uma vez e ele vale pra todas as notas daquele RUC.
+		<div class="row" style="justify-content:space-between; align-items:center">
+			<h2 style="margin:0">Comércios cadastrados</h2>
+			<div class="row">
+				<button class="btn" id="btnExportarComercios">Exportar JSON</button>
+				<button class="btn" id="btnImportarComercios">Importar JSON</button>
+			</div>
+		</div>
+		<p class="small muted">
+			A nota só traz o RUC do comércio (o site da SET exige captcha pros dados completos). Cadastre nome e tipo uma vez e vale pra todas as notas daquele RUC — inclusive as que ainda vão chegar do Capturador.
 		</p>
+		<input type="file" id="fileImportComercios" accept="application/json" multiple style="display:none" />
 		<div id="comercios"></div>
 	</div>
 
