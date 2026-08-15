@@ -3,18 +3,28 @@
 ## O que é
 App web estático (HTML/JS puro, sem build) para escanear o QR das notas fiscais
 eletrônicas do Paraguai (sistema e-Kuatia/SIFEN da SET) e manter uma memória
-local de gastos, com dashboard de insights. Feito pra hospedar no GitHub Pages.
+local de gastos, com dashboard de insights. Publicado no GitHub Pages:
+https://prec470.github.io/cacique/ (repo: github.com/prec470/cacique, público).
 
 - `index.html` — Capturador: lê QR pela câmera ou por fotos salvas, extrai os
-  dados, deixa baixar um JSON.
+  dados, oferece cadastrar comércios novos na hora, deixa baixar um JSON.
 - `dashboard.html` — Dashboard: importa os JSONs, guarda tudo em localStorage
   (memória persistente do navegador), mostra totais, evolução no tempo, ranking
-  de comércios, etc. Também aceita apelidos por RUC (já que o nome do comércio
-  não vem no QR).
+  de comércios, etc. Também gerencia o cadastro de comércios (nome + tipo),
+  com export/import JSON próprio.
+- `itens.html` — Relatório de itens pendentes: lista notas cujos produtos ainda
+  não foram conferidos, com link direto pra consulta oficial (resolve o
+  captcha lá) e formulário pra registrar os itens de volta (manual ou colando
+  texto copiado da página como ponto de partida).
 - `js/qr-parse.js` — parsing puro (sem DOM) do texto do QR: decodifica a URL do
   e-Kuatia, a CDC (44 dígitos) e os números em formatos inconsistentes que a SET
-  usa (`239000.0000`, `488.779,0000`, `28,0000`, `0E-8`).
-- `js/store.js` — persistência em localStorage (ledger, apelidos, pendentes).
+  usa (`239000.0000`, `488.779,0000`, `28,0000`, `0E-8`). Parâmetros da URL lidos
+  case-insensitive (achamos um PDV real que gerava nomes em minúsculo).
+- `js/itens-parse.js` — parser best-effort de texto colado pra pré-preencher
+  itens (nunca aceito sem revisão do usuário — sem amostra real do formato da
+  página da SET pra validar contra).
+- `js/store.js` — persistência em localStorage (ledger, comércios/apelidos,
+  pendentes), incluindo merge de import (notas por CDC, comércios por RUC).
 - `js/charts.js` — gráficos SVG artesanais (sem lib externa), seguindo o skill
   de dataviz do Claude Code (paleta validada, barras finas, tooltip no hover).
 - `vendor/zxing-wasm/` — leitor de QR via WASM (zxing-cpp), vendorizado da lib
@@ -32,30 +42,29 @@ quantidade de itens — dá pra extrair tudo isso 100% no navegador.
 consulta completa no site da SET exige resolver um reCAPTCHA do Google
 (confirmado lendo o JS do app AngularJS deles — `FormqrCtrl.guardar` só chama
 a API depois de `vcRecaptchaService.getResponse()`). Não é algo pra contornar.
-Por isso a tabela de notas no dashboard tem um link "Ver no e-Kuatia" que abre
-a consulta oficial numa aba nova — resolve o captcha manualmente ali se quiser
-ver os itens de uma nota específica.
+Fluxo adotado: `itens.html` lista as notas pendentes, o usuário abre o link,
+resolve o captcha manualmente, e registra os itens de volta no app (ver seção
+"Itens" abaixo).
 
 A CDC (44 dígitos) já contém o RUC do emissor embutido (validado cruzando com
 a data decodificada em 8 notas reais — ver `parseCDC` em `qr-parse.js`), então
 dá pra agrupar gastos por comércio mesmo sem acessar o site.
 
-## Decisão do usuário (2026-08-15)
-Escolhida a opção "Combinação: QR agora, itens depois" — MVP só com os dados
-do QR (sem itens/produtos), decidir depois se vale a pena um fluxo manual
-(captcha + colar itens) ou OCR do cupom completo pra fase 2.
+## Cadastro de comércios (2026-08-15)
+RUC → { nome, tipo }, guardado em localStorage e compartilhado entre Capturador
+e Dashboard. Tipo é uma lista fixa (`TIPOS_COMERCIO` em `store.js`) pra não
+fragmentar consultas depois. Ao capturar uma nota de RUC novo, o Capturador
+oferece cadastrar na hora (não bloqueia o scanner). Dashboard tem
+export/import JSON desse cadastro, separado do backup de notas.
 
-## Estado atual
-MVP implementado e testado (parsing validado em Node com QRs reais; dashboard
-testado via jsdom com dados sintéticos — 17 notas, filtro de período, edição
-de apelido, gráficos, tudo funcionando sem erros). **Não testado num navegador
-de verdade ainda** (câmera/WASM não dá pra testar no Pi headless — Puppeteer
-não funciona em ARM, ver memória `reference_ambiente_git_gh`). Falta:
-- Testar no celular do usuário (câmera + leitura real) depois do deploy.
-- Criar repositório GitHub e publicar no Pages (não feito — pede confirmação
-  antes de criar/publicar repositório).
-- Fotos de amostra (`*.jpg` na raiz da pasta) e os JSONs exportados são dados
-  pessoais reais — `.gitignore` já exclui isso, mas checar antes de commitar.
+## Itens pendentes (2026-08-15)
+Cada registro de nota tem um campo `itens`: `null` = ainda não conferido,
+`[]` = usuário conferiu e marcou como sem itens relevantes, `[...]` =
+itens registrados. `itens.html` lista as pendentes, com link pra consulta
+oficial (`sifen.urlConsulta`) e formulário de registro manual + parser
+best-effort de texto colado (`itens-parse.js`) só como ponto de partida — a
+soma dos itens é comparada ao vivo com o total da nota (do QR) pra ajudar a
+pegar erro de digitação.
 
 ## OCR testado e descartado (2026-08-15)
 Testei usar OCR (Tesseract.js, que roda tanto no navegador quanto no Node) como
@@ -70,9 +79,21 @@ ideia sem um modelo treinado especificamente pra esse tipo de fonte (fora do
 escopo). Decisão: em vez de OCR, o capturador mostra dicas de recaptura
 (reflexo, dobra, distância) quando passa tempo sem ler nenhum QR — resolve o
 caso real, já que o mesmo QR lê perfeitamente numa foto sem esses problemas.
+Isso também é o motivo de `itens-parse.js` usar um parser de texto colado (não
+OCR de imagem) pra pré-preencher itens: o texto vem selecionável da própria
+página da SET, sem precisar reconhecer a fonte térmica de novo.
+
+## Estado atual
+Publicado e testado no navegador real (celular do usuário) — câmera, leitura
+de QR, cadastro de comércios, tudo confirmado funcionando. `itens.html` ainda
+não testado num navegador real (só via jsdom com dados sintéticos) — o parser
+de texto colado especialmente precisa de um teste com um exemplo real copiado
+da página da SET pra saber se vale a pena ajustar a heurística.
 
 ## Próximos passos possíveis
-- Fase 2 de itens: escolher entre colar manualmente (após captcha) ou OCR do
-  cupom (Tesseract.js) — ver discussão na sessão de 2026-08-15.
+- Testar `itens.html` de verdade: abrir uma nota real no e-Kuatia, copiar o
+  texto da tabela de itens, colar no app, e ver se o parser precisa ajuste.
+- Uma vez que houver itens reais registrados, dashboard pode ganhar insights
+  por produto (categorias de gasto, variação de preço do mesmo item) — não
+  fazia sentido antes de existir dado real pra mostrar.
 - Favicon/ícone do app, manifest PWA (instalável no celular) se o usuário quiser.
-- Botão "abrir dashboard" a partir do capturador quando no mesmo dispositivo.
