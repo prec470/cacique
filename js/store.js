@@ -42,6 +42,11 @@ export function salvarLedger(lista) {
 	gravar(KEY_LEDGER, lista);
 }
 
+// Retorna um novo ledger com o registro de CDC informado atualizado (shallow merge).
+export function atualizarRegistroLedger(ledger, cdc, patch) {
+	return ledger.map((r) => (r.cdc === cdc ? { ...r, ...patch } : r));
+}
+
 // Funde novos registros no ledger existente, ignorando CDCs já presentes.
 export function mesclarNoLedger(existentes, novos) {
 	const vistos = new Set(existentes.map((r) => r.cdc));

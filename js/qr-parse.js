@@ -157,6 +157,10 @@ export function parseTextoQr(texto, meta = {}) {
 		quantidadeItens: cItems != null ? Math.round(parseNumeroSifen(cItems)) : null,
 		moeda: "PYG",
 		categoria: null,
+		// null = itens ainda não conferidos (a lista de itens exige abrir o link e resolver
+		// o captcha da SET); [] = usuário conferiu e marcou como sem itens relevantes;
+		// [...] = itens registrados manualmente a partir da consulta.
+		itens: null,
 		sifen: {
 			nVersion,
 			digestValue,

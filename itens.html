@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Cacique — Itens</title>
+<link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+<header class="app-header">
+	<a class="brand" href="index.html"><span class="mark">C</span> Cacique</a>
+	<nav class="app-nav">
+		<a href="index.html">Capturar</a>
+		<a href="dashboard.html">Dashboard</a>
+		<a href="itens.html" class="active">Itens</a>
+	</nav>
+</header>
+
+<main>
+	<h1>Itens das notas</h1>
+	<p class="lede">
+		O QR não traz os produtos de cada nota — só o site da SET mostra isso, e exige resolver
+		um captcha. Abra o link de cada nota pendente, veja os itens lá, e registre aqui
+		(digitando ou colando o texto copiado da página, como ponto de partida).
+	</p>
+
+	<div class="stat-grid">
+		<div class="stat-tile"><div class="label">Pendentes</div><div class="value" id="statPendentes">0</div></div>
+		<div class="stat-tile"><div class="label">Com itens registrados</div><div class="value" id="statCompletas">0</div></div>
+		<div class="stat-tile"><div class="label">Marcadas sem itens</div><div class="value" id="statSemItens">0</div></div>
+	</div>
+
+	<div class="card">
+		<h2>Pendentes</h2>
+		<p class="empty" id="emptyPendentes" style="display:none">Nenhuma nota pendente — tudo registrado ou nada capturado ainda.</p>
+		<div id="listaPendentes"></div>
+	</div>
+
+	<div class="card">
+		<div class="row field-inline" style="cursor:pointer" id="toggleCompletas">
+			<h2 style="margin:0">Já registradas</h2>
+			<span class="small muted" id="toggleCompletasLabel">mostrar</span>
+		</div>
+		<div id="listaCompletas" style="display:none; margin-top:12px"></div>
+	</div>
+</main>
+
+<template id="tplItemLinha">
+	<div class="row field-inline item-linha" style="margin-bottom:6px">
+		<input type="text" class="campo-descricao" placeholder="Descrição" style="flex:2; min-width:140px" />
+		<input type="number" class="campo-qtd" placeholder="Qtd" min="0" step="1" value="1" style="width:64px" />
+		<input type="number" class="campo-preco" placeholder="Preço unit." min="0" step="1" style="width:110px" />
+		<span class="small muted campo-subtotal" style="min-width:90px; text-align:right"></span>
+		<button class="btn" data-acao="remover-item" title="Remover">✕</button>
+	</div>
+</template>
+
+<template id="tplNota">
+	<div class="card nota-item" style="border-color:var(--series-1)">
+		<div class="row" style="justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px">
+			<div>
+				<div class="nota-cabecalho" style="font-weight:650"></div>
+				<div class="small muted nota-sub"></div>
+			</div>
+			<a class="btn primary nota-link" target="_blank" rel="noopener">Abrir no e-Kuatia ↗</a>
+		</div>
+
+		<details style="margin-top:12px">
+			<summary class="small link" style="cursor:pointer">Registrar itens</summary>
+			<div style="margin-top:12px">
+				<p class="small muted" style="margin:0 0 6px">
+					Colar texto copiado da página da SET (opcional — só um ponto de partida, confira as linhas antes de salvar):
+				</p>
+				<div class="row field-inline">
+					<textarea class="campo-colar" rows="3" style="flex:1; font: inherit; padding:8px; border-radius:9px; border:1px solid var(--border); background:var(--surface-1); color:var(--text-primary)"></textarea>
+				</div>
+				<div class="row" style="margin:8px 0">
+					<button class="btn" data-acao="tentar-preencher">Tentar preencher</button>
+				</div>
+
+				<div class="itens-linhas"></div>
+				<button class="btn" data-acao="add-item" style="margin-top:4px">+ Adicionar item</button>
+
+				<div class="row" style="justify-content:space-between; align-items:center; margin-top:14px">
+					<span class="small comparacao"></span>
+					<div class="row">
+						<button class="btn" data-acao="sem-itens">Marcar sem itens</button>
+						<button class="btn primary" data-acao="salvar-itens">Salvar itens</button>
+					</div>
+				</div>
+			</div>
+		</details>
+	</div>
+</template>
+
+<div class="toast" id="toast"></div>
+
+<script type="module" src="js/itens.js"></script>
+</body>
+</html>
