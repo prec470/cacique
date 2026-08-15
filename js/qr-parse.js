@@ -87,18 +87,29 @@ export function parseTextoQr(texto, meta = {}) {
 	if (!url.hostname.endsWith("ekuatia.set.gov.py")) {
 		throw new QrInvalidoError("O código lido não é do e-Kuatia (SET Paraguai).");
 	}
-	const p = url.searchParams;
-	const id = p.get("Id") || "";
-	const nVersion = p.get("nVersion") || "";
-	const dFeEmiDE = p.get("dFeEmiDE") || "";
-	const dTotGralOpe = p.get("dTotGralOpe");
-	const dTotIVA = p.get("dTotIVA");
-	const cItems = p.get("cItems");
-	const dRucRec = p.get("dRucRec");
-	const dNumIDRec = p.get("dNumIDRec");
-	const digestValue = p.get("DigestValue") || "";
-	const idCSC = p.get("IdCSC") || "";
-	const cHashQR = p.get("cHashQR") || "";
+	// Nem todo emissor/PDV segue a grafia exata dos nomes de parâmetro (ex.: "id" em vez de "Id"),
+	// então a busca ignora maiúsculas/minúsculas em vez de depender só de searchParams.get().
+	const chaves = new Map();
+	for (const chave of url.searchParams.keys()) {
+		const k = chave.toLowerCase();
+		if (!chaves.has(k)) chaves.set(k, chave);
+	}
+	const getCI = (nome) => {
+		const original = chaves.get(nome.toLowerCase());
+		return original != null ? url.searchParams.get(original) : null;
+	};
+
+	const id = getCI("Id") || "";
+	const nVersion = getCI("nVersion") || "";
+	const dFeEmiDE = getCI("dFeEmiDE") || "";
+	const dTotGralOpe = getCI("dTotGralOpe");
+	const dTotIVA = getCI("dTotIVA");
+	const cItems = getCI("cItems");
+	const dRucRec = getCI("dRucRec");
+	const dNumIDRec = getCI("dNumIDRec");
+	const digestValue = getCI("DigestValue") || "";
+	const idCSC = getCI("IdCSC") || "";
+	const cHashQR = getCI("cHashQR") || "";
 
 	if (!id || !nVersion) {
 		throw new QrInvalidoError("QR do e-Kuatia sem os parâmetros esperados (Id/nVersion).");

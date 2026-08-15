@@ -129,7 +129,7 @@ async function processarResultadoTexto(texto, meta) {
 async function iniciarCamera() {
 	try {
 		stream = await navigator.mediaDevices.getUserMedia({
-			video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 } },
+			video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } },
 			audio: false,
 		});
 	} catch (e) {
@@ -165,7 +165,7 @@ async function cicloDeLeitura() {
 	if (!stream) return;
 	try {
 		if (Date.now() >= cooldownAte && els.video.videoWidth) {
-			const escala = Math.min(1, 1000 / els.video.videoWidth);
+			const escala = Math.min(1, 1600 / els.video.videoWidth);
 			const w = Math.round(els.video.videoWidth * escala);
 			const h = Math.round(els.video.videoHeight * escala);
 			els.canvas.width = w;
