@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Cacique — Dashboard</title>
+<link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+<header class="app-header">
+	<a class="brand" href="index.html"><span class="mark">C</span> Cacique</a>
+	<nav class="app-nav">
+		<a href="index.html">Capturar</a>
+		<a href="dashboard.html" class="active">Dashboard</a>
+	</nav>
+</header>
+
+<main class="viz-root">
+	<h1>Dashboard</h1>
+	<p class="lede">
+		Sua memória de gastos, guardada neste navegador. Importe os JSONs baixados no
+		<a class="link" href="index.html">Capturador</a> para começar.
+	</p>
+
+	<div class="card" id="bannerPendentes" style="display:none; border-color:var(--series-1)">
+		<div class="row" style="justify-content:space-between; align-items:center">
+			<span id="bannerTexto" class="small"></span>
+			<div class="row">
+				<button class="btn primary" id="btnImportarPendentes">Importar agora</button>
+				<button class="btn" id="btnDescartarPendentes">Descartar</button>
+			</div>
+		</div>
+	</div>
+
+	<div class="card">
+		<h2>Importar notas</h2>
+		<div class="dropzone" id="dropzone">
+			Toque para escolher os arquivos JSON baixados no Capturador, ou arraste-os aqui.
+		</div>
+		<input type="file" id="fileImport" accept="application/json" multiple style="display:none" />
+	</div>
+
+	<div class="card">
+		<div class="row" style="justify-content:space-between; flex-wrap:wrap; gap:10px">
+			<div class="row field-inline">
+				<label class="small muted" for="periodo">Período</label>
+				<select id="periodo">
+					<option value="mes">Este mês</option>
+					<option value="30d">Últimos 30 dias</option>
+					<option value="90d">Últimos 90 dias</option>
+					<option value="ano">Este ano</option>
+					<option value="tudo" selected>Tudo</option>
+				</select>
+			</div>
+			<input type="search" id="busca" placeholder="Buscar comércio ou tipo..." />
+		</div>
+	</div>
+
+	<div class="stat-grid">
+		<div class="stat-tile"><div class="label">Total gasto</div><div class="value" id="statTotal">—</div></div>
+		<div class="stat-tile"><div class="label">Nº de notas</div><div class="value" id="statNotas">0</div></div>
+		<div class="stat-tile"><div class="label">Ticket médio</div><div class="value" id="statTicket">—</div></div>
+		<div class="stat-tile"><div class="label">IVA total</div><div class="value" id="statIva">—</div></div>
+	</div>
+
+	<div class="card">
+		<h2>Evolução do gasto</h2>
+		<div id="chartEvolucao"></div>
+	</div>
+
+	<div class="card">
+		<h2>Comércios — maior gasto</h2>
+		<div id="chartRanking"></div>
+	</div>
+
+	<div class="card">
+		<h2>Tipos de documento</h2>
+		<div class="row" id="tipos"></div>
+	</div>
+
+	<div class="card">
+		<h2>Comércios (apelidos)</h2>
+		<p class="small muted" style="margin-top:-6px">
+			A nota só traz o RUC do comércio (o site da SET exige captcha pros dados completos). Dê um apelido uma vez e ele vale pra todas as notas daquele RUC.
+		</p>
+		<div id="comercios"></div>
+	</div>
+
+	<div class="card">
+		<div class="row" style="justify-content:space-between; align-items:center; margin-bottom:10px">
+			<h2 style="margin:0">Notas</h2>
+			<div class="row">
+				<button class="btn" id="btnBackup">Baixar backup</button>
+				<button class="btn danger" id="btnApagarTudo">Apagar tudo</button>
+			</div>
+		</div>
+		<p class="empty" id="empty">Nenhuma nota no período selecionado.</p>
+		<div class="table-scroll" id="tabelaWrap" style="display:none">
+			<table>
+				<thead>
+					<tr><th>Emissão</th><th>Comércio</th><th>Tipo</th><th>Total</th><th>Itens</th><th></th><th></th></tr>
+				</thead>
+				<tbody id="tbody"></tbody>
+			</table>
+		</div>
+	</div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script type="module" src="js/dashboard.js"></script>
+</body>
+</html>

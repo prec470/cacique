@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Cacique — Capturar notas</title>
+<link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+<header class="app-header">
+	<a class="brand" href="index.html"><span class="mark">C</span> Cacique</a>
+	<nav class="app-nav">
+		<a href="index.html" class="active">Capturar</a>
+		<a href="dashboard.html">Dashboard</a>
+	</nav>
+</header>
+
+<main>
+	<h1>Capturar notas</h1>
+	<p class="lede">
+		Escaneie o QR code da nota fiscal (e-Kuatia / SET Paraguai) pela câmera, ou carregue fotos já salvas.
+		Os dados ficam guardados neste navegador até você baixar o JSON e importar no
+		<a class="link" href="dashboard.html">Dashboard</a>.
+	</p>
+
+	<div class="card">
+		<h2>Câmera</h2>
+		<div class="scanner">
+			<video id="video" playsinline muted></video>
+			<div class="frame" id="frame"></div>
+			<div class="hint" id="hint">Toque em "Iniciar câmera"</div>
+		</div>
+		<canvas id="canvas" style="display:none"></canvas>
+		<div class="row" style="margin-top:12px">
+			<button class="btn primary" id="btnStart">Iniciar câmera</button>
+			<button class="btn" id="btnStop" style="display:none">Parar câmera</button>
+		</div>
+	</div>
+
+	<div class="card">
+		<h2>Fotos salvas</h2>
+		<div class="dropzone" id="dropzone">
+			Toque para escolher fotos, ou arraste-as aqui.<br />
+			<span class="muted small">Pode selecionar várias de uma vez.</span>
+		</div>
+		<input type="file" id="fileInput" accept="image/*" multiple style="display:none" />
+		<ul id="falhas" class="small muted" style="display:none; margin-top:10px; padding-left:18px"></ul>
+	</div>
+
+	<div class="stat-grid">
+		<div class="stat-tile"><div class="label">Notas nesta lista</div><div class="value" id="statCount">0</div></div>
+		<div class="stat-tile"><div class="label">Total</div><div class="value" id="statTotal">—</div></div>
+		<div class="stat-tile"><div class="label">IVA total</div><div class="value" id="statIva">—</div></div>
+	</div>
+
+	<div class="card">
+		<div class="row" style="justify-content:space-between; align-items:center; margin-bottom:10px">
+			<h2 style="margin:0">Notas capturadas</h2>
+			<div class="row">
+				<button class="btn primary" id="btnBaixar">Baixar JSON</button>
+				<button class="btn danger" id="btnLimpar">Limpar</button>
+			</div>
+		</div>
+		<p class="empty" id="empty">Nenhuma nota capturada ainda.</p>
+		<div class="table-scroll">
+			<table id="lista" style="display:none">
+				<thead>
+					<tr><th>Emissão</th><th>Comércio (RUC)</th><th>Tipo</th><th>Total</th><th>Itens</th><th></th></tr>
+				</thead>
+				<tbody id="tbody"></tbody>
+			</table>
+		</div>
+	</div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script type="module" src="js/capture.js"></script>
+</body>
+</html>

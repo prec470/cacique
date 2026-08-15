@@ -1,0 +1,11 @@
+# Fotos reais de notas fiscais (dados pessoais) — não versionar
+*.jpg
+*.jpeg
+*.png
+*.heic
+
+# Exports/backups com dados financeiros pessoais
+cacique-notas-*.json
+cacique-backup-*.json
+
+.DS_Store
