@@ -34,6 +34,41 @@ let scanLoopHandle = null;
 let cooldownAte = 0;
 const ctx = els.canvas.getContext("2d", { willReadFrequently: true });
 
+// Dicas mostradas quando a câmera passa um tempo sem conseguir ler nenhum QR —
+// cobrem as causas reais observadas (reflexo de luz, dobra no papel, distância/foco).
+const DICAS_LEITURA = [
+	"Sem sinal ainda — aproxime mais a câmera do QR",
+	"Alise a nota: dobras sobre o QR atrapalham a leitura",
+	"Incline a nota pra evitar reflexo de luz sobre o QR",
+	"Segure firme por um instante, sem tremer",
+	"Procure mais luz, sem brilho direto no papel",
+];
+let inicioTentativa = 0;
+let indiceDica = 0;
+let dicaTimer = null;
+
+function iniciarDicasRotativas() {
+	inicioTentativa = Date.now();
+	indiceDica = 0;
+	clearInterval(dicaTimer);
+	dicaTimer = setInterval(() => {
+		if (Date.now() - inicioTentativa < 6000) return;
+		els.hint.textContent = DICAS_LEITURA[indiceDica % DICAS_LEITURA.length];
+		indiceDica++;
+	}, 2600);
+}
+
+function pararDicasRotativas() {
+	clearInterval(dicaTimer);
+	dicaTimer = null;
+}
+
+function resetarTentativa() {
+	inicioTentativa = Date.now();
+	indiceDica = 0;
+	els.hint.textContent = "Aponte para o QR code da nota";
+}
+
 function mostrarToast(msg, ms = 2200) {
 	els.toast.textContent = msg;
 	els.toast.classList.add("show");
@@ -140,13 +175,15 @@ async function iniciarCamera() {
 	await els.video.play();
 	els.btnStart.style.display = "none";
 	els.btnStop.style.display = "";
-	els.hint.textContent = "Aponte para o QR code da nota";
+	resetarTentativa();
+	iniciarDicasRotativas();
 	agendarLoop();
 }
 
 function pararCamera() {
 	if (scanLoopHandle) clearTimeout(scanLoopHandle);
 	scanLoopHandle = null;
+	pararDicasRotativas();
 	if (stream) {
 		for (const t of stream.getTracks()) t.stop();
 		stream = null;
@@ -180,8 +217,12 @@ async function cicloDeLeitura() {
 				const ok = await processarResultadoTexto(resultados[0].text, { origem: "camera" });
 				els.frame.classList.toggle("hit", ok);
 				cooldownAte = Date.now() + (ok ? 1400 : 900);
-				if (!ok) setTimeout(() => els.frame.classList.remove("hit"), 500);
-				else setTimeout(() => els.frame.classList.remove("hit"), 700);
+				if (ok) {
+					resetarTentativa();
+					setTimeout(() => els.frame.classList.remove("hit"), 700);
+				} else {
+					setTimeout(() => els.frame.classList.remove("hit"), 500);
+				}
 			}
 		}
 	} catch {
@@ -204,7 +245,7 @@ async function processarArquivos(fileList) {
 		try {
 			const resultados = await readBarcodes(arquivo, { formats: ["QRCode"], tryHarder: true });
 			if (!resultados.length) {
-				adicionarFalha(arquivo.name, "QR code não encontrado na imagem");
+				adicionarFalha(arquivo.name, "QR não encontrado — tente sem reflexo de luz, sem dobras sobre o código e mais nítido");
 				continue;
 			}
 			let lida = false;
