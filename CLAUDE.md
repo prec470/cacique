@@ -61,10 +61,19 @@ export/import JSON desse cadastro, separado do backup de notas.
 Cada registro de nota tem um campo `itens`: `null` = ainda não conferido,
 `[]` = usuário conferiu e marcou como sem itens relevantes, `[...]` =
 itens registrados. `itens.html` lista as pendentes, com link pra consulta
-oficial (`sifen.urlConsulta`) e formulário de registro manual + parser
-best-effort de texto colado (`itens-parse.js`) só como ponto de partida — a
-soma dos itens é comparada ao vivo com o total da nota (do QR) pra ajudar a
-pegar erro de digitação.
+oficial (`sifen.urlConsulta`).
+
+**Melhor caminho descoberto**: a consulta oficial deixa baixar o XML do
+Documento Electrónico (DE) — estruturado, oficial, muito mais confiável que
+qualquer heurística de texto. `js/xml-parse.js` lê `<DE Id="CDC">` e cada
+`<gCamItem>` (schema oficial `siRecepDE_v150.xsd`), usando
+`dTotOpeItem/quantidade` como preço unitário (valor líquido já com desconto,
+não o preço de lista) — testado com 2 XMLs reais do usuário, soma dos itens
+bateu exatamente com o total da nota nos dois casos. `itens.html` tem uma
+zona de importação em lote: solta um ou vários XMLs, cada um associado à
+nota certa pela CDC (não pelo nome do arquivo). O parser de texto colado
+(`itens-parse.js`) continua como alternativa por nota quando não dá pra
+baixar o XML, mas o XML é a via recomendada agora.
 
 ## OCR testado e descartado (2026-08-15)
 Testei usar OCR (Tesseract.js, que roda tanto no navegador quanto no Node) como
