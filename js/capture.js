@@ -294,6 +294,26 @@ els.btnStart.addEventListener("click", iniciarCamera);
 els.btnStop.addEventListener("click", pararCamera);
 
 // --- Upload de fotos ---
+// readBarcodes(File) manda os bytes do JPEG direto pro decodificador de imagem
+// do WASM, que é mais limitado que o do navegador e falhava silenciosamente em
+// fotos reais de câmera (grandes, formatos variados). Decodificar a imagem com
+// o próprio navegador e entregar ImageData usa o mesmo caminho já validado com
+// a câmera ao vivo.
+const canvasArquivo = document.createElement("canvas");
+const ctxArquivo = canvasArquivo.getContext("2d", { willReadFrequently: true });
+
+async function arquivoParaImageData(arquivo, ladoMax = 4000) {
+	const bitmap = await createImageBitmap(arquivo);
+	const escala = Math.min(1, ladoMax / Math.max(bitmap.width, bitmap.height));
+	const w = Math.round(bitmap.width * escala);
+	const h = Math.round(bitmap.height * escala);
+	canvasArquivo.width = w;
+	canvasArquivo.height = h;
+	ctxArquivo.drawImage(bitmap, 0, 0, w, h);
+	bitmap.close();
+	return ctxArquivo.getImageData(0, 0, w, h);
+}
+
 async function processarArquivos(fileList) {
 	const arquivos = Array.from(fileList).filter((f) => f.type.startsWith("image/"));
 	if (!arquivos.length) return;
@@ -302,7 +322,8 @@ async function processarArquivos(fileList) {
 	mostrarToast(`Lendo ${arquivos.length} foto(s)...`, 60000);
 	for (const arquivo of arquivos) {
 		try {
-			const resultados = await readBarcodes(arquivo, { formats: ["QRCode"], tryHarder: true });
+			const imageData = await arquivoParaImageData(arquivo);
+			const resultados = await readBarcodes(imageData, { formats: ["QRCode"], tryHarder: true });
 			if (!resultados.length) {
 				adicionarFalha(arquivo.name, "QR não encontrado — tente sem reflexo de luz, sem dobras sobre o código e mais nítido");
 				continue;
