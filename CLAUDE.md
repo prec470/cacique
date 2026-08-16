@@ -120,6 +120,22 @@ provou ser confiável — sempre preferir decodificar a imagem com o navegador
 (ou node-canvas/@napi-rs/canvas em teste) e passar `ImageData`, não o arquivo
 bruto.
 
+## Nome de comércio via XML + página de produtos (2026-08-16)
+O XML traz `dNomEmi` (nome oficial do emissor) — ao importar, preenche o
+cadastro de comércios automaticamente se ainda não tiver nome (não sobrescreve
+apelido já dado pelo usuário). Itens também passam a guardar `codigo`
+(dCodInt) quando vem do XML.
+
+`produtos.html` — estatísticas por produto: agrupa compras por descrição
+normalizada (trim+maiúsculo), já que o código interno é específico de cada
+emissor e não serve pra comparar entre lojas diferentes (limitação conhecida:
+só agrupa entre comércios se a descrição bater; se um comércio descrever o
+mesmo produto diferente, aparece como produto separado — não tem fusão manual
+ainda). Por produto: quantidade/total no período, preço médio/mín/máx,
+gráfico de evolução de preço por comércio (`renderEvolucao` em charts.js,
+scatter+linha, até 3 cores próprias + "Outros"), tabela de comparação entre
+comércios, histórico completo.
+
 ## Estado atual
 Publicado e testado no navegador real (celular do usuário) — câmera, leitura
 de QR, cadastro de comércios, tudo confirmado funcionando. `itens.html` ainda
