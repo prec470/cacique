@@ -21,9 +21,20 @@
 	<h1>Itens das notas</h1>
 	<p class="lede">
 		O QR não traz os produtos de cada nota — só o site da SET mostra isso, e exige resolver
-		um captcha. Abra o link de cada nota pendente, veja os itens lá, e registre aqui
-		(digitando ou colando o texto copiado da página, como ponto de partida).
+		um captcha. Abra o link de cada nota pendente, resolva o captcha, e baixe o XML do
+		documento (opção disponível na página de consulta). Solte o(s) XML aqui embaixo pra
+		importar os itens automaticamente — é a forma mais confiável, já que o XML é
+		estruturado e vem com preços e quantidades exatos.
 	</p>
+
+	<div class="card">
+		<h2>Importar XML</h2>
+		<div class="dropzone" id="dropzoneXml">
+			Toque para escolher o(s) XML baixado(s) da consulta, ou arraste-os aqui.<br />
+			<span class="muted small">Pode soltar vários de uma vez — cada um é associado à nota certa pela CDC.</span>
+		</div>
+		<input type="file" id="fileImportXml" accept=".xml,application/xml,text/xml" multiple style="display:none" />
+	</div>
 
 	<div class="stat-grid">
 		<div class="stat-tile"><div class="label">Pendentes</div><div class="value" id="statPendentes">0</div></div>
@@ -70,7 +81,7 @@
 			<summary class="small link" style="cursor:pointer">Registrar itens</summary>
 			<div style="margin-top:12px">
 				<p class="small muted" style="margin:0 0 6px">
-					Colar texto copiado da página da SET (opcional — só um ponto de partida, confira as linhas antes de salvar):
+					Prefira importar o XML lá em cima — mais confiável. Se não tiver o XML à mão, cole aqui o texto copiado da página da SET (só um ponto de partida, confira as linhas antes de salvar):
 				</p>
 				<div class="row field-inline">
 					<textarea class="campo-colar" rows="3" style="flex:1; font: inherit; padding:8px; border-radius:9px; border:1px solid var(--border); background:var(--surface-1); color:var(--text-primary)"></textarea>

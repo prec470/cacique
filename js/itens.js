@@ -1,5 +1,6 @@
 import { carregarLedger, salvarLedger, atualizarRegistroLedger, carregarComercios } from "./store.js";
 import { parseTextoItens } from "./itens-parse.js";
+import { parseXmlDE, XmlInvalidoError } from "./xml-parse.js";
 
 const els = {
 	statPendentes: document.getElementById("statPendentes"),
@@ -13,6 +14,8 @@ const els = {
 	toast: document.getElementById("toast"),
 	tplNota: document.getElementById("tplNota"),
 	tplItemLinha: document.getElementById("tplItemLinha"),
+	dropzoneXml: document.getElementById("dropzoneXml"),
+	fileImportXml: document.getElementById("fileImportXml"),
 };
 
 let ledger = carregarLedger();
@@ -166,5 +169,56 @@ els.toggleCompletas.addEventListener("click", () => {
 	els.listaCompletas.style.display = aberto ? "none" : "";
 	els.toggleCompletasLabel.textContent = aberto ? "mostrar" : "esconder";
 });
+
+// --- Importar XML da consulta oficial ---
+async function importarXmls(fileList) {
+	const arquivos = Array.from(fileList).filter((f) => /\.xml$/i.test(f.name) || f.type.includes("xml"));
+	if (!arquivos.length) return;
+	let atualizadas = 0;
+	let naoEncontradas = 0;
+	let erros = 0;
+	for (const arquivo of arquivos) {
+		try {
+			const texto = await arquivo.text();
+			const { cdc, itens } = parseXmlDE(texto);
+			if (!ledger.some((r) => r.cdc === cdc)) {
+				naoEncontradas++;
+				continue;
+			}
+			ledger = atualizarRegistroLedger(ledger, cdc, { itens });
+			atualizadas++;
+		} catch (e) {
+			erros++;
+			console.error(arquivo.name, e);
+		}
+	}
+	salvarLedger(ledger);
+	const partes = [`${atualizadas} nota(s) atualizada(s)`];
+	if (naoEncontradas) partes.push(`${naoEncontradas} sem nota correspondente (importe a nota antes, pelo Capturador)`);
+	if (erros) partes.push(`${erros} arquivo(s) inválido(s)`);
+	mostrarToast(partes.join(" · "), 4200);
+	renderTudo();
+}
+
+els.fileImportXml.addEventListener("change", (e) => {
+	if (e.target.files.length) importarXmls(e.target.files);
+	e.target.value = "";
+});
+["dragenter", "dragover"].forEach((ev) =>
+	els.dropzoneXml.addEventListener(ev, (e) => {
+		e.preventDefault();
+		els.dropzoneXml.classList.add("over");
+	}),
+);
+["dragleave", "drop"].forEach((ev) =>
+	els.dropzoneXml.addEventListener(ev, (e) => {
+		e.preventDefault();
+		els.dropzoneXml.classList.remove("over");
+	}),
+);
+els.dropzoneXml.addEventListener("drop", (e) => {
+	if (e.dataTransfer?.files?.length) importarXmls(e.dataTransfer.files);
+});
+els.dropzoneXml.addEventListener("click", () => els.fileImportXml.click());
 
 renderTudo();

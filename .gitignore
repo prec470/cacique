@@ -7,5 +7,10 @@
 # Exports/backups com dados financeiros pessoais
 cacique-notas-*.json
 cacique-backup-*.json
+cacique-comercios-*.json
+
+# XML de Documento Electrónico baixado da consulta da SET (dados pessoais:
+# nome, CI/RUC do receptor, itens comprados, certificado digital do emissor)
+*.xml
 
 .DS_Store
