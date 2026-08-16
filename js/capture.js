@@ -302,16 +302,33 @@ els.btnStop.addEventListener("click", pararCamera);
 const canvasArquivo = document.createElement("canvas");
 const ctxArquivo = canvasArquivo.getContext("2d", { willReadFrequently: true });
 
-async function arquivoParaImageData(arquivo, ladoMax = 4000) {
+// Reduzir a imagem borra as bordas dos módulos do QR (o navegador suaviza ao
+// redimensionar por padrão) — em algumas notas isso derruba a leitura só em
+// certas escalas específicas (confirmado testando o motor real: uma nota lia
+// em 4 escalas diferentes e falhava exatamente em 2400px, só por causa da
+// suavização). Desligar o suavizamento + tentar mais de uma escala cobre os
+// casos observados.
+const ESCALAS_TENTATIVA = [null, 3200, 2200, 1600]; // null = resolução nativa
+
+async function decodificarArquivo(arquivo) {
 	const bitmap = await createImageBitmap(arquivo);
-	const escala = Math.min(1, ladoMax / Math.max(bitmap.width, bitmap.height));
-	const w = Math.round(bitmap.width * escala);
-	const h = Math.round(bitmap.height * escala);
-	canvasArquivo.width = w;
-	canvasArquivo.height = h;
-	ctxArquivo.drawImage(bitmap, 0, 0, w, h);
-	bitmap.close();
-	return ctxArquivo.getImageData(0, 0, w, h);
+	try {
+		for (const ladoMax of ESCALAS_TENTATIVA) {
+			const escala = ladoMax ? Math.min(1, ladoMax / Math.max(bitmap.width, bitmap.height)) : 1;
+			const w = Math.round(bitmap.width * escala);
+			const h = Math.round(bitmap.height * escala);
+			canvasArquivo.width = w;
+			canvasArquivo.height = h;
+			ctxArquivo.imageSmoothingEnabled = false;
+			ctxArquivo.drawImage(bitmap, 0, 0, w, h);
+			const imageData = ctxArquivo.getImageData(0, 0, w, h);
+			const resultados = await readBarcodes(imageData, { formats: ["QRCode"], tryHarder: true });
+			if (resultados.length) return resultados;
+		}
+		return [];
+	} finally {
+		bitmap.close();
+	}
 }
 
 async function processarArquivos(fileList) {
@@ -322,8 +339,7 @@ async function processarArquivos(fileList) {
 	mostrarToast(`Lendo ${arquivos.length} foto(s)...`, 60000);
 	for (const arquivo of arquivos) {
 		try {
-			const imageData = await arquivoParaImageData(arquivo);
-			const resultados = await readBarcodes(imageData, { formats: ["QRCode"], tryHarder: true });
+			const resultados = await decodificarArquivo(arquivo);
 			if (!resultados.length) {
 				adicionarFalha(arquivo.name, "QR não encontrado — tente sem reflexo de luz, sem dobras sobre o código e mais nítido");
 				continue;
