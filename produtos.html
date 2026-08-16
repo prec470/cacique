@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Cacique — Produtos</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg" />
+<link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+<header class="app-header">
+	<a class="brand" href="index.html"><span class="mark">C</span> Cacique</a>
+	<nav class="app-nav">
+		<a href="index.html">Capturar</a>
+		<a href="dashboard.html">Dashboard</a>
+		<a href="itens.html">Itens</a>
+		<a href="produtos.html" class="active">Produtos</a>
+	</nav>
+</header>
+
+<main class="viz-root">
+	<h1>Produtos</h1>
+	<p class="lede">
+		Estatísticas por produto, a partir dos itens registrados (via XML ou digitados manualmente
+		na página <a class="link" href="itens.html">Itens</a>). Agrupado pela descrição do produto —
+		mesma descrição em comércios diferentes aparece junto, pra comparar preços.
+	</p>
+
+	<div class="card" id="cardLista">
+		<h2>Buscar produto</h2>
+		<input type="search" id="busca" placeholder="Buscar por nome do produto..." style="width:100%; margin-bottom:12px" />
+		<p class="empty" id="emptyLista" style="display:none">Nenhum item registrado ainda — importe XMLs na página Itens pra começar.</p>
+		<div class="table-scroll">
+			<table id="tabelaLista" style="display:none">
+				<thead>
+					<tr><th>Produto</th><th>Compras</th><th>Comércios</th><th>Total gasto</th></tr>
+				</thead>
+				<tbody id="tbodyLista"></tbody>
+			</table>
+		</div>
+	</div>
+
+	<div class="card" id="cardDetalhe" style="display:none; border-color:var(--series-1)">
+		<div class="row" style="justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px">
+			<h2 id="detalheTitulo" style="margin:0"></h2>
+			<div class="row field-inline">
+				<label class="small muted" for="detalhePeriodo">Período</label>
+				<select id="detalhePeriodo">
+					<option value="mes">Este mês</option>
+					<option value="30d">Últimos 30 dias</option>
+					<option value="90d">Últimos 90 dias</option>
+					<option value="ano">Este ano</option>
+					<option value="tudo" selected>Tudo</option>
+				</select>
+			</div>
+		</div>
+
+		<div class="stat-grid" style="margin-top:14px">
+			<div class="stat-tile"><div class="label">Quantidade comprada</div><div class="value" id="detalheQtd">0</div></div>
+			<div class="stat-tile"><div class="label">Total gasto</div><div class="value" id="detalheTotal">—</div></div>
+			<div class="stat-tile"><div class="label">Preço médio</div><div class="value" id="detalheMedio">—</div></div>
+			<div class="stat-tile"><div class="label">Mín. / Máx.</div><div class="value" id="detalheMinMax" style="font-size:18px">—</div></div>
+		</div>
+
+		<h2>Evolução de preço</h2>
+		<div id="detalheChart"></div>
+
+		<h2>Comparação entre comércios</h2>
+		<div class="table-scroll">
+			<table id="tabelaComercios">
+				<thead>
+					<tr><th>Comércio</th><th>Compras</th><th>Preço médio</th><th>Mín.</th><th>Máx.</th><th>Última compra</th></tr>
+				</thead>
+				<tbody id="tbodyComercios"></tbody>
+			</table>
+		</div>
+
+		<h2>Histórico de compras</h2>
+		<div class="table-scroll">
+			<table id="tabelaHistorico">
+				<thead>
+					<tr><th>Data</th><th>Comércio</th><th>Qtd.</th><th>Preço unit.</th><th>Subtotal</th></tr>
+				</thead>
+				<tbody id="tbodyHistorico"></tbody>
+			</table>
+		</div>
+	</div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script type="module" src="js/produtos.js"></script>
+</body>
+</html>

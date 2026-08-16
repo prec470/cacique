@@ -16,7 +16,7 @@ function primeiroNumero(el, tag) {
 	return t == null || t === "" ? null : parseFloat(t);
 }
 
-// Retorna { cdc, itens: [{ descricao, quantidade, precoUnitario }] }.
+// Retorna { cdc, emissor: { ruc, nome }, itens: [{ codigo, descricao, quantidade, precoUnitario }] }.
 export function parseXmlDE(textoXml) {
 	let dom;
 	try {
@@ -42,6 +42,7 @@ export function parseXmlDE(textoXml) {
 	for (const itemEl of deEl.getElementsByTagNameNS(NS_SIFEN, "gCamItem")) {
 		const descricao = primeiroTexto(itemEl, "dDesProSer");
 		if (!descricao) continue;
+		const codigo = primeiroTexto(itemEl, "dCodInt");
 		const quantidade = primeiroNumero(itemEl, "dCantProSer") ?? 1;
 		const precoLista = primeiroNumero(itemEl, "dPUniProSer");
 		// dTotOpeItem (dentro de gValorRestaItem) é o total líquido do item, já
@@ -50,8 +51,18 @@ export function parseXmlDE(textoXml) {
 		const totalBruto = primeiroNumero(itemEl, "dTotBruOpeItem");
 		const total = totalLiquido ?? totalBruto ?? (quantidade && precoLista ? quantidade * precoLista : null);
 		const precoUnitario = total != null && quantidade ? total / quantidade : (precoLista ?? 0);
-		itens.push({ descricao, quantidade, precoUnitario });
+		itens.push({ codigo, descricao, quantidade, precoUnitario });
 	}
 
-	return { cdc, itens };
+	const gEmisList = deEl.getElementsByTagNameNS(NS_SIFEN, "gEmis");
+	let emissor = null;
+	if (gEmisList.length) {
+		const gEmis = gEmisList[0];
+		const rucBase = primeiroTexto(gEmis, "dRucEm");
+		const rucDV = primeiroTexto(gEmis, "dDVEmi");
+		const nome = primeiroTexto(gEmis, "dNomEmi");
+		if (rucBase && nome) emissor = { ruc: `${rucBase}-${rucDV ?? ""}`.replace(/-$/, ""), nome };
+	}
+
+	return { cdc, emissor, itens };
 }

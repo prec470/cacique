@@ -1,4 +1,4 @@
-import { carregarLedger, salvarLedger, atualizarRegistroLedger, carregarComercios } from "./store.js";
+import { carregarLedger, salvarLedger, atualizarRegistroLedger, carregarComercios, salvarComercios } from "./store.js";
 import { parseTextoItens } from "./itens-parse.js";
 import { parseXmlDE, XmlInvalidoError } from "./xml-parse.js";
 
@@ -48,6 +48,7 @@ function adicionarLinhaItem(container, item) {
 	linha.querySelector(".campo-descricao").value = item?.descricao || "";
 	linha.querySelector(".campo-qtd").value = item?.quantidade ?? 1;
 	linha.querySelector(".campo-preco").value = item?.precoUnitario ?? "";
+	if (item?.codigo) linha.dataset.codigo = item.codigo;
 	container.appendChild(frag);
 }
 
@@ -58,7 +59,9 @@ function lerLinhasItens(container) {
 		const quantidade = parseFloat(linha.querySelector(".campo-qtd").value) || 0;
 		const precoUnitario = parseFloat(linha.querySelector(".campo-preco").value) || 0;
 		if (!descricao) continue;
-		itens.push({ descricao, quantidade, precoUnitario });
+		const item = { descricao, quantidade, precoUnitario };
+		if (linha.dataset.codigo) item.codigo = linha.dataset.codigo;
+		itens.push(item);
 	}
 	return itens;
 }
@@ -177,26 +180,35 @@ async function importarXmls(fileList) {
 	let atualizadas = 0;
 	let naoEncontradas = 0;
 	let erros = 0;
+	let comerciosNomeados = 0;
 	for (const arquivo of arquivos) {
 		try {
 			const texto = await arquivo.text();
-			const { cdc, itens } = parseXmlDE(texto);
+			const { cdc, emissor, itens } = parseXmlDE(texto);
 			if (!ledger.some((r) => r.cdc === cdc)) {
 				naoEncontradas++;
 				continue;
 			}
 			ledger = atualizarRegistroLedger(ledger, cdc, { itens });
 			atualizadas++;
+			// O XML traz o nome oficial do emissor — preenche o cadastro se ainda
+			// não tiver nome (não sobrescreve um apelido que o usuário já deu).
+			if (emissor && !comercios[emissor.ruc]?.nome) {
+				comercios[emissor.ruc] = { ...comercios[emissor.ruc], nome: emissor.nome };
+				comerciosNomeados++;
+			}
 		} catch (e) {
 			erros++;
 			console.error(arquivo.name, e);
 		}
 	}
 	salvarLedger(ledger);
+	if (comerciosNomeados) salvarComercios(comercios);
 	const partes = [`${atualizadas} nota(s) atualizada(s)`];
+	if (comerciosNomeados) partes.push(`${comerciosNomeados} comércio(s) nomeado(s) automaticamente`);
 	if (naoEncontradas) partes.push(`${naoEncontradas} sem nota correspondente (importe a nota antes, pelo Capturador)`);
 	if (erros) partes.push(`${erros} arquivo(s) inválido(s)`);
-	mostrarToast(partes.join(" · "), 4200);
+	mostrarToast(partes.join(" · "), 4600);
 	renderTudo();
 }
 

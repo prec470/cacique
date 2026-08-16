@@ -165,3 +165,90 @@ export function renderRanking(container, data, { formatador = (v) => v, alturaLi
 
 	wrap.appendChild(svg);
 }
+
+// As 3 primeiras séries usam cor própria (slots 1-3 são os que a paleta valida
+// all-pairs pra formas tipo scatter); a partir da 4ª, cai em "Outros" (cinza) —
+// regra do skill de dataviz pra não estourar a paleta categórica num scatter.
+const CORES_SERIE = ["var(--series-1)", "var(--series-2)", "var(--series-3)"];
+const COR_OUTROS = "var(--text-muted)";
+
+function corDaSerie(indice) {
+	return indice < CORES_SERIE.length ? CORES_SERIE[indice] : COR_OUTROS;
+}
+
+// Gráfico de dispersão (evolução de preço no tempo, por grupo/comércio).
+// grupos: [{ label, pontos: [{ x: Date, y: number }] }]
+export function renderEvolucao(container, grupos, { formatador = (v) => v, alturaMax = 240 } = {}) {
+	container.innerHTML = "";
+	const todosPontos = grupos.flatMap((g) => g.pontos);
+	if (!todosPontos.length) {
+		container.innerHTML = '<p class="empty">Sem dados no período.</p>';
+		return;
+	}
+
+	const larguraTotal = Math.max(container.clientWidth || 320, 280);
+	const margem = { top: 20, right: 16, bottom: 26, left: 8 };
+	const altura = alturaMax;
+	const areaW = larguraTotal - margem.left - margem.right;
+	const areaH = altura - margem.top - margem.bottom;
+
+	const tempos = todosPontos.map((p) => p.x.getTime());
+	const minX = Math.min(...tempos);
+	const maxX = Math.max(...tempos);
+	const spanX = Math.max(maxX - minX, 86400000);
+	const teto = arredondarTeto(Math.max(...todosPontos.map((p) => p.y)) * 1.08);
+
+	const px = (data) => margem.left + ((data.getTime() - minX) / spanX) * areaW;
+	const py = (valor) => margem.top + areaH - (valor / teto) * areaH;
+
+	const svg = el("svg", {
+		viewBox: `0 0 ${larguraTotal} ${altura}`,
+		class: "chart",
+		width: "100%",
+		height: altura,
+		preserveAspectRatio: "none",
+	});
+
+	[0, 0.5, 1].forEach((frac) => {
+		const y = margem.top + areaH * (1 - frac);
+		svg.appendChild(el("line", { x1: margem.left, x2: larguraTotal - margem.right, y1: y, y2: y, class: frac === 0 ? "axis-line" : "gridline" }));
+	});
+
+	const wrap = document.createElement("div");
+	wrap.className = "chart-wrap";
+	container.appendChild(wrap);
+
+	grupos.forEach((g, gi) => {
+		const cor = corDaSerie(gi);
+		const ordenados = [...g.pontos].sort((a, b) => a.x - b.x);
+		if (ordenados.length > 1) {
+			const d = ordenados.map((p, i) => `${i === 0 ? "M" : "L"} ${px(p.x).toFixed(1)} ${py(p.y).toFixed(1)}`).join(" ");
+			svg.appendChild(el("path", { d, fill: "none", stroke: cor, "stroke-width": 2, opacity: 0.45 }));
+		}
+		for (const p of ordenados) {
+			const dot = el("circle", { cx: px(p.x), cy: py(p.y), r: 5, fill: cor, stroke: "var(--surface-1)", "stroke-width": 2 });
+			svg.appendChild(dot);
+			ligarHover(wrap, dot, `${g.label}: ${formatador(p.y)} — ${p.x.toLocaleDateString("pt-BR")}`, px(p.x), py(p.y));
+		}
+	});
+
+	[minX, maxX].forEach((t, i) => {
+		const label = el("text", { x: px(new Date(t)), y: altura - 8, "text-anchor": i === 0 ? "start" : "end" });
+		label.textContent = new Date(t).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+		svg.appendChild(label);
+	});
+
+	wrap.appendChild(svg);
+
+	if (grupos.length > 1) {
+		const legenda = document.createElement("div");
+		legenda.className = "legend";
+		grupos.forEach((g, gi) => {
+			const item = document.createElement("div");
+			item.className = "item";
+			item.innerHTML = `<span class="swatch" style="background:${corDaSerie(gi)}"></span>${g.label}`;
+			legenda.appendChild(item);
+		});
+		container.appendChild(legenda);
+	}
+}
