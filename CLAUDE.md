@@ -83,6 +83,34 @@ Isso também é o motivo de `itens-parse.js` usar um parser de texto colado (nã
 OCR de imagem) pra pré-preencher itens: o texto vem selecionável da própria
 página da SET, sem precisar reconhecer a fonte térmica de novo.
 
+## Bug corrigido: upload de arquivo não lia nenhum QR (2026-08-15)
+No navegador (desktop), o upload de fotos falhava pra 100% dos arquivos —
+mesmo fotos que decodificavam bem via zxing-cpp em Python. Causa: `capture.js`
+chamava `readBarcodes(arquivoFile, ...)` passando o `File` direto, o que faz o
+zxing-wasm mandar os bytes crus do JPEG pro decodificador de imagem embutido
+no próprio WASM (`readBarcodesFromImage`, via bytes brutos — não é o mesmo
+decodificador do navegador). Esse caminho é mais limitado e falhava
+silenciosamente em fotos reais de câmera. A câmera ao vivo nunca teve esse
+problema porque já entrega `ImageData` (pixels prontos via canvas), que usa um
+caminho diferente (`readBarcodesFromPixmap`) que nunca passa pelo decodificador
+de imagem do WASM.
+
+Corrigido decodificando a imagem com `createImageBitmap` + canvas antes de
+chamar `readBarcodes`, igual à câmera. Validado rodando o zxing-wasm real (o
+mesmo arquivo vendorizado) em Node com `@napi-rs/canvas` (decodificação de
+imagem nativa de verdade, não simulação) — 8/8 fotos reais de nota passaram a
+ler certo, contra 0/8 antes. De brinde, achei que um teto fixo de resolução
+(2400px) causava moiré e falhava numa nota específica só naquela escala exata
+(1600 e 3200+ funcionavam, 2400 não) — subi o teto pra 4000px, que se mostrou
+robusto em todas as amostras.
+
+**Lição pra não esquecer**: `readBarcodes()` do zxing-wasm aceita `Blob/File`
+diretamente e a documentação oficial mostra isso como uso válido, mas na
+prática (fotos grandes de câmera de verdade) só o caminho via `ImageData`
+provou ser confiável — sempre preferir decodificar a imagem com o navegador
+(ou node-canvas/@napi-rs/canvas em teste) e passar `ImageData`, não o arquivo
+bruto.
+
 ## Estado atual
 Publicado e testado no navegador real (celular do usuário) — câmera, leitura
 de QR, cadastro de comércios, tudo confirmado funcionando. `itens.html` ainda
