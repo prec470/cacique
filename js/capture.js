@@ -266,6 +266,7 @@ async function cicloDeLeitura() {
 			const h = Math.round(els.video.videoHeight * escala);
 			els.canvas.width = w;
 			els.canvas.height = h;
+			ctx.imageSmoothingEnabled = false;
 			ctx.drawImage(els.video, 0, 0, w, h);
 			const imageData = ctx.getImageData(0, 0, w, h);
 			const resultados = await readBarcodes(imageData, {
